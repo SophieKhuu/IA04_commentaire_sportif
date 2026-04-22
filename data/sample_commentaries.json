@@ -1,0 +1,37 @@
+[
+    {
+        "id": 1,
+        "title": "France vs Argentina - Match 1",
+        "commentary": "Excellent match ce soir! Dupont a réalisé une performance exceptionnelle en défense avec de nombreux blocs décisifs. Martin a montré une grande maîtrise technique avec ses passes précises. Bernard était moins présent physiquement mais son attitude était exemplaire. Leclerc a pris de bonnes décisions tactiques en première ligne. Moreau a eu quelques erreurs techniques au service mais s'est bien repris. L'équipe en général a montré une belle dynamique.",
+        "language": "fr",
+        "expected_players": [
+            "Dupont",
+            "Martin",
+            "Bernard",
+            "Leclerc",
+            "Moreau"
+        ],
+    },
+    {
+        "id": 2,
+        "title": "Volleyball Training Session",
+        "commentary": "Great training today! The team showed solid technical skills with well-executed passes and spikes. Defensive performance was solid with good communication. Player number 5 had an outstanding attitude and led by example. Physical conditioning looked good. Some tactical decisions were questionable during the final sets. Overall a productive session with good energy.",
+        "language": "en",
+        "expected_players": [
+            "5"
+        ],
+    },
+    {
+        "id": 3,
+        "title": "Women's Volleyball Match",
+        "commentary": "Sophie a dominé en attaque avec une puissance remarquable. Emma s'est distinguée en défense avec plusieurs récupérations spectaculaires. Clara a montré une très bonne technique de passe. Noémé avait des difficultés physiques aujourd'hui mais a compensé par sa tactique. Rose n'a pas été à son meilleur au service. L'équipe dans l'ensemble a bien réagi face à un adversaire de haut niveau.",
+        "language": "fr",
+        "expected_players": [
+            "Sophie",
+            "Emma",
+            "Clara",
+            "Noémé",
+            "Rose"
+        ],
+    },
+]

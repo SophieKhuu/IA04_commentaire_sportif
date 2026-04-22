@@ -1,0 +1,31 @@
+# Core LLM & APIs
+groq>=0.10.0
+python-dotenv>=1.0.0
+
+# Data validation & serialization
+pydantic>=2.0
+pydantic-settings>=2.0
+
+# Audio & transcription
+openai-whisper>=20231105
+torch>=2.0.0
+
+# Web framework
+streamlit>=1.30
+altair>=5.0
+plotly>=5.0
+pandas>=2.0
+
+# Utilities
+requests>=2.30
+tqdm>=4.60
+
+# Development & Testing
+pytest>=7.0
+pytest-cov>=4.0
+black>=24.0
+flake8>=6.0
+mypy>=1.0
+
+# Optional: Video download (for audio pipeline)
+yt-dlp>=2024.1.0
