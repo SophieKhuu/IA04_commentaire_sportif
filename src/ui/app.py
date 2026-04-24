@@ -220,26 +220,31 @@ def render_analysis_tab(weights):
                             )
                             
                             st.success("✅ Audio downloaded successfully")
-                            
-                            # Transcribe
-                            with st.spinner("🎤 Transcribing audio..."):
-                                transcriber = get_transcriber()
-                                transcribed_text = transcriber.transcribe(audio_path)
-                                st.success("✅ Transcription completed")
-                                st.text_area(
-                                    "Transcribed text",
-                                    value=transcribed_text,
-                                    height=100,
-                                    disabled=True,
-                                    key="transcribed_video_text"
-                                )
-                                
-                                # Store in session state for later use
-                                st.session_state.transcribed_video_text = transcribed_text
 
                         except Exception as e:
                             st.error(f"❌ Download/Transcription failed: {str(e)}")
                             logger.error(f"Video processing error: {str(e)}", exc_info=True)
+            if st.button("Transcribe Video Audio", use_container_width=True):
+                if 'audio_path' in locals():
+                    # Transcribe
+                            with st.spinner("🎤 Transcribing audio..."):
+                                try:
+                                    transcriber = get_transcriber()
+                                    transcribed_text = transcriber.transcribe(audio_path)
+                                    st.success("✅ Transcription completed")
+                                    st.text_area(
+                                        "Transcribed text",
+                                        value=transcribed_text,
+                                        height=100,
+                                        disabled=True,
+                                        key="transcribed_video_text"
+                                    )
+                                    
+                                    # Store in session state for later use
+                                    st.session_state.transcribed_video_text = transcribed_text
+                                except Exception as e:
+                                    st.error(f"❌ Transcription failed: {str(e)}")
+                                    logger.error(f"Transcription error: {str(e)}", exc_info=True)
 
     # Decide which text to use
     if "transcribed_video_text" in st.session_state and st.session_state.transcribed_video_text:
@@ -328,6 +333,27 @@ def render_results(analysis_result: AnalysisResult, weights: dict):
 
     # Player ratings table
     if analysis_result.players:
+        # Player performances
+        st.subheader("🏐 Player Performances")
+
+        # Prepare DataFrame
+        data = []
+
+        for player in analysis_result.players:
+            data.append({
+                "Name": player.name,
+                "Number": player.number or "-",
+                "Points": player.points,
+                "Aces": player.aces,
+                "Blocks": player.blocks,
+                "Errors": player.errors,
+            }
+        )
+            
+        df = pd.DataFrame(data)
+        st.dataframe(df, use_container_width=True)
+
+        # Player ratings 
         st.subheader("🏐 Player Ratings")
 
         # Prepare DataFrame
