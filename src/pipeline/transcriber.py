@@ -9,10 +9,10 @@ from typing import Optional
 
 import whisper
 
-# from src.config import WHISPER_MODEL, WHISPER_DEVICE
+from src.config import WHISPER_MODEL, WHISPER_DEVICE
 
-WHISPER_MODEL="base"
-WHISPER_DEVICE="cpu"
+# WHISPER_MODEL="base"
+# WHISPER_DEVICE="cpu"
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +150,3 @@ class WhisperTranscriber:
             "device": self.device,
             "cached_models": list(self._model_cache.keys()),
         }
-
-transcriber = WhisperTranscriber()
-transcriber.transcribe("c:\\Users\\zebri\\Documents\\GitHub\\IA04_commentaire_sportif\\data\\france_coree_du_sud.mp3")

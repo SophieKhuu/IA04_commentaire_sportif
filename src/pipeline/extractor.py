@@ -57,26 +57,31 @@ class AnalysisExtractor:
                 number = player_data.get("number")
                 notes = player_data.get("notes", "")
                 facts = player_data.get("facts", [])
+                
+                # Extract concrete metrics
+                points = int(player_data.get("points", 0))
+                aces = int(player_data.get("aces", 0))
+                blocks = int(player_data.get("blocks", 0))
+                errors = int(player_data.get("errors", 0))
+                attacks_successful = int(player_data.get("attacks_successful", 0))
+                attacks_attempted = int(player_data.get("attacks_attempted", 0))
 
-                # Validate and extract scores
+                # Validate and extract scores (0-20 scale)
                 scores = CriteriaScore(
                     technique=AnalysisExtractor._validate_score(
-                        player_data.get("technique", 50)
+                        player_data.get("scores", {}).get("technique", 10)
                     ),
                     defense=AnalysisExtractor._validate_score(
-                        player_data.get("defense", 50)
+                        player_data.get("scores", {}).get("defense", 10)
                     ),
                     attitude=AnalysisExtractor._validate_score(
-                        player_data.get("attitude", 50)
+                        player_data.get("scores", {}).get("attitude", 10)
                     ),
                     physique=AnalysisExtractor._validate_score(
-                        player_data.get("physique", 50)
+                        player_data.get("scores", {}).get("physique", 10)
                     ),
                     decision_tactique=AnalysisExtractor._validate_score(
-                        player_data.get("decision_tactique", 50)
-                    ),
-                    autre=AnalysisExtractor._validate_score(
-                        player_data.get("autre", 50)
+                        player_data.get("scores", {}).get("decision_tactique", 10)
                     ),
                 )
 
@@ -89,6 +94,12 @@ class AnalysisExtractor:
                 player_rating = PlayerRating(
                     name=name,
                     number=number,
+                    points=points,
+                    aces=aces,
+                    blocks=blocks,
+                    errors=errors,
+                    attacks_successful=attacks_successful,
+                    attacks_attempted=attacks_attempted,
                     scores=scores,
                     final_score=final_score,
                     notes=notes,
@@ -106,15 +117,15 @@ class AnalysisExtractor:
         return player_ratings
 
     @staticmethod
-    def _validate_score(score: Any) -> int:
+    def _validate_score(score: Any) -> float:
         """
-        Validate and normalize score to 0-100 range
+        Validate and normalize score to 0-20 range
 
         Args:
             score: Score value (int, float, or string)
 
         Returns:
-            Validated score as int
+            Validated score as float
 
         Raises:
             ValueError: If score cannot be converted
@@ -123,7 +134,7 @@ class AnalysisExtractor:
             # Convert to float first to handle various types
             numeric_score = float(score)
 
-            # Clamp to valid range
+            # Clamp to valid range (0-20)
             if numeric_score < MIN_SCORE:
                 logger.warning(
                     f"Score {numeric_score} below minimum {MIN_SCORE}, clamping"
@@ -135,11 +146,11 @@ class AnalysisExtractor:
                 )
                 numeric_score = MAX_SCORE
 
-            return int(round(numeric_score))
+            return round(numeric_score, 1)
 
         except (ValueError, TypeError) as e:
-            logger.warning(f"Invalid score value {score}: {str(e)}, using default 50")
-            return 50
+            logger.warning(f"Invalid score value {score}: {str(e)}, using default 10")
+            return 10.0
 
     @staticmethod
     def build_analysis_result(

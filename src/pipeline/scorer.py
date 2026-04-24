@@ -17,43 +17,23 @@ class Scorer:
     @staticmethod
     def calculate_final_score(criteria: CriteriaScore, weights: Dict[str, float] = None) -> float:
         """
-        Calculate weighted final score from individual criteria
+        Calculate average final score from individual criteria (0-20 scale)
 
         Args:
-            criteria: CriteriaScore object with individual scores
-            weights: Optional custom weights dict. If None, uses config defaults.
+            criteria: CriteriaScore object with individual scores (0-20)
+            weights: Optional - not used in new system (kept for backward compatibility)
 
         Returns:
-            Weighted final score (0-100)
+            Average final score (0-20)
         """
-        if weights is None:
-            weights = {
-                "technique": SCORING_CRITERIA["technique"]["weight"],
-                "defense": SCORING_CRITERIA["defense"]["weight"],
-                "attitude": SCORING_CRITERIA["attitude"]["weight"],
-                "physique": SCORING_CRITERIA["physique"]["weight"],
-                "decision_tactique": SCORING_CRITERIA["decision_tactique"]["weight"],
-                "autre": SCORING_CRITERIA["autre"]["weight"],
-            }
-
-        # Verify weights sum to approximately 1.0
-        total_weight = sum(weights.values())
-        if abs(total_weight - 1.0) > 0.01:
-            logger.warning(
-                f"Weights don't sum to 1.0 (sum={total_weight}), normalizing"
-            )
-            # Normalize weights
-            weights = {k: v / total_weight for k, v in weights.items()}
-
-        # Calculate weighted score
+        # Calculate simple average of 5 criteria
         final_score = (
-            criteria.technique * weights.get("technique", 0)
-            + criteria.defense * weights.get("defense", 0)
-            + criteria.attitude * weights.get("attitude", 0)
-            + criteria.physique * weights.get("physique", 0)
-            + criteria.decision_tactique * weights.get("decision_tactique", 0)
-            + criteria.autre * weights.get("autre", 0)
-        )
+            criteria.technique
+            + criteria.defense
+            + criteria.attitude
+            + criteria.physique
+            + criteria.decision_tactique
+        ) / 5
 
         # Round to 1 decimal
         final_score = round(final_score, 1)
@@ -62,7 +42,7 @@ class Scorer:
             f"Calculated final score: {final_score} "
             f"from T:{criteria.technique} D:{criteria.defense} "
             f"A:{criteria.attitude} P:{criteria.physique} "
-            f"DT:{criteria.decision_tactique} O:{criteria.autre}"
+            f"DT:{criteria.decision_tactique}"
         )
 
         return final_score
@@ -70,23 +50,23 @@ class Scorer:
     @staticmethod
     def get_rating_category(score: float) -> str:
         """
-        Categorize player performance based on final score
+        Categorize player performance based on final score (0-20 scale)
 
         Args:
-            score: Final score (0-100)
+            score: Final score (0-20)
 
         Returns:
             Performance category string
         """
-        if score >= 90:
+        if score >= 18:
             return "Exceptionnel"
-        elif score >= 80:
+        elif score >= 16:
             return "Excellent"
-        elif score >= 70:
+        elif score >= 14:
             return "Bon"
-        elif score >= 60:
+        elif score >= 12:
             return "Satisfaisant"
-        elif score >= 50:
+        elif score >= 10:
             return "Acceptable"
         else:
             return "Faible"
@@ -94,21 +74,21 @@ class Scorer:
     @staticmethod
     def get_score_color(score: float) -> str:
         """
-        Get color code for visualization based on score
+        Get color code for visualization based on score (0-20 scale)
 
         Args:
-            score: Final score (0-100)
+            score: Final score (0-20)
 
         Returns:
-            Color code (hex or rgb)
+            Color code (hex)
         """
-        if score >= 90:
+        if score >= 18:
             return "#006400"  # Dark green
-        elif score >= 80:
+        elif score >= 16:
             return "#228B22"  # Forest green
-        elif score >= 70:
+        elif score >= 14:
             return "#FFD700"  # Gold
-        elif score >= 60:
+        elif score >= 12:
             return "#FF8C00"  # Orange
         else:
             return "#DC143C"  # Crimson red

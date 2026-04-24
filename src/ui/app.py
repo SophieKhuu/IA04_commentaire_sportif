@@ -14,6 +14,7 @@ from src.pipeline.llm_client import GroqLLMClient
 from src.pipeline.extractor import AnalysisExtractor, ExtractionError
 from src.pipeline.scorer import Scorer
 from src.pipeline.transcriber import WhisperTranscriber
+from src.pipeline.audio_converter import AudioConverter
 from src.pipeline.text_processor import TextProcessor
 from src.models.schemas import AnalysisResult, ExportResult
 
@@ -63,6 +64,12 @@ def get_transcriber():
     return WhisperTranscriber()
 
 
+@st.cache_resource
+def get_audio_converter():
+    """Initialize AudioConverter (cached)"""
+    return AudioConverter()
+
+
 def render_header():
     """Render application header"""
     col1, col2 = st.columns([0.9, 0.1])
@@ -80,22 +87,19 @@ def render_sidebar():
     with st.sidebar:
         st.header("⚙️ Configuration")
 
-        st.subheader("Scoring Weights")
-        weights = {}
-        for criterion_key, criterion_info in SCORING_CRITERIA.items():
-            weights[criterion_key] = st.slider(
-                criterion_info["name"],
-                0.0,
-                1.0,
-                criterion_info["weight"],
-                0.05,
-                help=criterion_info["description"],
-            )
-
-        # Normalize weights
-        total = sum(weights.values())
-        if total > 0:
-            weights = {k: v / total for k, v in weights.items()}
+        st.subheader("Scoring System")
+        st.info("""
+        **Scoring Method:** Average of 5 criteria (0-20 scale)
+        
+        Each criterion is calculated from concrete metrics:
+        - **Technique**: (points + aces×2) - (erreurs×2)
+        - **Defense**: (blocks×3) - erreurs
+        - **Attitude**: 20 - erreurs
+        - **Physique**: (points + aces + blocks) / 2
+        - **Decision Tactique**: (points×2) / total actions × 20
+        
+        Final Score = Average of 5 criteria
+        """)
 
         st.divider()
         st.subheader("About")
@@ -105,13 +109,25 @@ def render_sidebar():
         to extract player performance metrics and generate ratings.
 
         **Key Features:**
-        - Text & audio input support
-        - 6-criteria performance scoring
+        - Text, audio & video link input support
+        - 5-criteria performance scoring (0-20 scale)
+        - Concrete metrics tracking (points, aces, blocks, errors)
         - JSON/CSV export
         - Real-time analysis
+        
+        **Scoring Criteria:**
+        - Technique, Defense, Attitude, Physique, Decision Tactique
         """
         )
 
+        # Return empty weights dict for backward compatibility
+        weights = {
+            "technique": 0.20,
+            "defense": 0.25,
+            "attitude": 0.20,
+            "physique": 0.15,
+            "decision_tactique": 0.20,
+        }
         return weights
 
 
@@ -132,44 +148,106 @@ def render_analysis_tab(weights):
 
     with col2:
         st.subheader("Audio Input")
-        audio_file = st.file_uploader(
-            "Upload audio file (MP3, WAV, M4A, OGG)",
-            type=["mp3", "wav", "m4a", "ogg"],
+        
+        # Choose input method
+        input_method = st.radio(
+            "Select audio input method",
+            ["Upload File", "Video URL"],
+            horizontal=True,
+            key="audio_input_method"
         )
+        
         transcribed_text = None
 
-        if audio_file is not None:
-            with st.spinner("🎤 Transcribing audio..."):
-                try:
-                    # Save uploaded file temporarily
-                    import tempfile
-                    import os
+        if input_method == "Upload File":
+            audio_file = st.file_uploader(
+                "Upload audio file (MP3, WAV, M4A, OGG)",
+                type=["mp3", "wav", "m4a", "ogg"],
+            )
 
-                    with tempfile.NamedTemporaryFile(
-                        delete=False, suffix=audio_file.name
-                    ) as tmp_file:
-                        tmp_file.write(audio_file.getbuffer())
-                        tmp_path = tmp_file.name
+            if audio_file is not None:
+                with st.spinner("🎤 Transcribing audio..."):
+                    try:
+                        # Save uploaded file temporarily
+                        import tempfile
+                        import os
 
-                    transcriber = get_transcriber()
-                    transcribed_text = transcriber.transcribe(tmp_path)
+                        with tempfile.NamedTemporaryFile(
+                            delete=False, suffix=audio_file.name
+                        ) as tmp_file:
+                            tmp_file.write(audio_file.getbuffer())
+                            tmp_path = tmp_file.name
 
-                    # Clean up
-                    os.unlink(tmp_path)
+                        transcriber = get_transcriber()
+                        transcribed_text = transcriber.transcribe(tmp_path)
 
-                    st.success("✅ Transcription completed")
-                    st.text_area(
-                        "Transcribed text",
-                        value=transcribed_text,
-                        height=100,
-                        disabled=True,
-                    )
+                        # Clean up
+                        os.unlink(tmp_path)
 
-                except Exception as e:
-                    st.error(f"❌ Transcription failed: {str(e)}")
+                        st.success("✅ Transcription completed")
+                        st.text_area(
+                            "Transcribed text",
+                            value=transcribed_text,
+                            height=100,
+                            disabled=True,
+                        )
+
+                    except Exception as e:
+                        st.error(f"❌ Transcription failed: {str(e)}")
+
+        else:  # Video URL input
+            video_url = st.text_input(
+                "Enter video URL (YouTube, etc.)",
+                placeholder="https://www.youtube.com/watch?v=...",
+            )
+
+            if video_url:
+                if st.button("🎬 Download & Transcribe", use_container_width=True):
+                    with st.spinner("📥 Downloading audio from video..."):
+                        try:
+                            # Generate output filename from URL
+                            import urllib.parse
+                            from datetime import datetime
+                            
+                            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                            output_filename = f"video_audio_{timestamp}"
+                            
+                            # Download audio
+                            audio_converter = get_audio_converter()
+                            audio_path = audio_converter.download_audio(
+                                video_url, 
+                                output_filename
+                            )
+                            
+                            st.success("✅ Audio downloaded successfully")
+                            
+                            # Transcribe
+                            with st.spinner("🎤 Transcribing audio..."):
+                                transcriber = get_transcriber()
+                                transcribed_text = transcriber.transcribe(audio_path)
+                                st.success("✅ Transcription completed")
+                                st.text_area(
+                                    "Transcribed text",
+                                    value=transcribed_text,
+                                    height=100,
+                                    disabled=True,
+                                    key="transcribed_video_text"
+                                )
+                                
+                                # Store in session state for later use
+                                st.session_state.transcribed_video_text = transcribed_text
+
+                        except Exception as e:
+                            st.error(f"❌ Download/Transcription failed: {str(e)}")
+                            logger.error(f"Video processing error: {str(e)}", exc_info=True)
 
     # Decide which text to use
-    text_to_analyze = transcribed_text if transcribed_text else commentary_text
+    if "transcribed_video_text" in st.session_state and st.session_state.transcribed_video_text:
+        text_to_analyze = st.session_state.transcribed_video_text
+        source_type = "video"
+    else:
+        text_to_analyze = transcribed_text if transcribed_text else commentary_text
+        source_type = "audio" if transcribed_text else "text"
 
     # Analysis button
     if st.button("🚀 Analyze", use_container_width=True, type="primary"):
@@ -192,6 +270,7 @@ def render_analysis_tab(weights):
 
                 # Get LLM client and analyze
                 llm_client = get_llm_client()
+                print(text_to_analyze)
                 llm_response = llm_client.extract_json(text_to_analyze)
 
                 processing_time = time.time() - start_time
@@ -200,7 +279,7 @@ def render_analysis_tab(weights):
                 player_ratings = AnalysisExtractor.extract_player_ratings(
                     llm_response,
                     llm_response.get("summary", ""),
-                    source_type="audio" if audio_file else "text",
+                    source_type=source_type,
                 )
 
                 # Build result
@@ -239,7 +318,7 @@ def render_results(analysis_result: AnalysisResult, weights: dict):
             if analysis_result.players
             else 0
         )
-        st.metric("Average Score", f"{avg_score:.1f}")
+        st.metric("Average Score", f"{avg_score:.1f}/20")
     with col3:
         st.metric(
             "Processing Time", f"{analysis_result.processing_time_seconds:.2f}s"
@@ -263,8 +342,7 @@ def render_results(analysis_result: AnalysisResult, weights: dict):
                     "Attitude": player.scores.attitude,
                     "Physique": player.scores.physique,
                     "Decision": player.scores.decision_tactique,
-                    "Other": player.scores.autre,
-                    "Final Score": f"{player.final_score:.1f}",
+                    "Final Score": f"{player.final_score:.1f}/20",
                     "Category": Scorer.get_rating_category(player.final_score),
                 }
             )
@@ -303,8 +381,13 @@ def render_results(analysis_result: AnalysisResult, weights: dict):
                 col1, col2 = st.columns(2)
 
                 with col1:
-                    st.metric("Final Score", f"{player.final_score}/100")
+                    st.metric("Final Score", f"{player.final_score:.1f}/20")
                     st.metric("Category", Scorer.get_rating_category(player.final_score))
+                    # Show concrete metrics
+                    st.metric("Points", player.points)
+                    st.metric("Aces", player.aces)
+                    st.metric("Blocks", player.blocks)
+                    st.metric("Errors", player.errors)
 
                 with col2:
                     # Criteria breakdown
@@ -316,7 +399,6 @@ def render_results(analysis_result: AnalysisResult, weights: dict):
                             player.scores.attitude,
                             player.scores.physique,
                             player.scores.decision_tactique,
-                            player.scores.autre,
                         ],
                     }
                     criteria_df = pd.DataFrame(criteria_data)

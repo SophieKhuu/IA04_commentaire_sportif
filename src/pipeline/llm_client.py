@@ -36,7 +36,7 @@ class GroqLLMClient:
 
         Args:
             api_key: Groq API key (defaults to GROQ_API_KEY env var)
-            model: Model name (default: mixtral-8x7b-32768)
+            model: Model name 
             temperature: Sampling temperature (0-1)
             max_tokens: Maximum tokens in response
             max_retries: Number of retry attempts

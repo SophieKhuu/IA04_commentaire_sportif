@@ -33,7 +33,7 @@ LLM_TIMEOUT = 30  # seconds
 # Whisper Configuration
 # ============================================================================
 
-WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base")
+WHISPER_MODEL = os.getenv("WHISPER_MODEL", "small")
 WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "cpu")
 
 # ============================================================================
@@ -46,82 +46,101 @@ FFMPEG_PATH = os.getenv(
 )
 
 # ============================================================================
-# Volleyball Scoring Criteria
+# Volleyball Scoring Criteria (0-20 scale based on concrete metrics)
 # ============================================================================
 
 SCORING_CRITERIA = {
     "technique": {
         "name": "Technique",
-        "description": "Maîtrise technique du jeu (passes, frappe, etc.)",
+        "description": "Maîtrise technique du geste - Formula: (points + aces×2) - (erreurs×2)",
         "weight": 0.20,
     },
     "defense": {
         "name": "Défense",
-        "description": "Efficacité en défense (blocage, récupération)",
+        "description": "Capacité défensive - Formula: (blocks×3) - erreurs",
         "weight": 0.25,
     },
     "attitude": {
         "name": "Attitude",
-        "description": "Comportement et engagement mental",
+        "description": "Cohérence et régularité - Formula: 20 - erreurs",
         "weight": 0.20,
     },
     "physique": {
         "name": "Physique",
-        "description": "Performance physique et explosivité",
+        "description": "Intensité et fréquence d'actions - Formula: (points + aces + blocks) / 2",
         "weight": 0.15,
     },
     "decision_tactique": {
         "name": "Décision tactique",
-        "description": "Prise de décision et lecture du jeu",
-        "weight": 0.15,
-    },
-    "autre": {
-        "name": "Autre",
-        "description": "Autres observations pertinentes",
-        "weight": 0.05,
+        "description": "Efficacité des choix tactiques - Formula: (points×2) / (points + erreurs + blocks) × 20",
+        "weight": 0.25,
     },
 }
 
-# Score range validation
+# Score range validation (0-20 scale)
 MIN_SCORE = 0
-MAX_SCORE = 100
+MAX_SCORE = 20
 
 # ============================================================================
 # LLM Prompts
 # ============================================================================
 
-SYSTEM_PROMPT_VOLLEYBALL = """Tu es un expert en analyse de volleyball avec 20+ ans d'expérience.
-Tu dois analyser des commentaires sportifs de volleyball et extraire les informations suivantes en JSON valide:
+SYSTEM_PROMPT_VOLLEYBALL = """Tu es un analyste expert de matchs de volley-ball.
 
-1. Résumé (1-2 phrases): les faits clés du commentaire
-2. Joueurs identifiés: liste des noms/numéros
-3. Pour chaque joueur:
-   - Technique (0-100): maîtrise technique
-   - Défense (0-100): efficacité défensive
-   - Attitude (0-100): engagement mental et comportement
-   - Physique (0-100): performance physique
-   - Décision_tactique (0-100): prise de décision
-   - Autre (0-100): observations diverses
-   - Résumé: observation narrative
+Ton rôle est de transformer une transcription de match en JSON STRICT et d'évaluer les joueurs.
 
-Réponds UNIQUEMENT en JSON valide sans commentaires additionnels.
-Format JSON attendu:
+RÈGLES IMPORTANTES :
+- Tu dois répondre UNIQUEMENT en JSON valide
+- Aucun texte hors JSON
+- Ne pas inventer de joueurs inexistants
+- Si une info manque, mettre null ou 0
+- Noter chaque joueur sur 20 selon 5 critères concrets
+
+CRITÈRES DE NOTATION (0-20) :
+1. technique : Basé sur le ratio (points + aces) / erreurs. Maîtrise du geste.
+   Formula: (points + aces*2) - (erreurs*2) = note/20
+   
+2. defense : Basé sur le nombre de blocks réussis et erreurs de défense.
+   Formula: (blocks*3) - (erreurs) = note/20
+   
+3. attitude : Évalué par la cohérence et la récurrence des bonnes actions.
+   Formula: 20 - (erreurs) = note/20
+   
+4. physique : Évalué par l'intensité et la fréquence des actions.
+   Formula: (points + aces + blocks) / 2 = note/20
+   
+5. decision_tactique : Évalué par l'efficacité des actions.
+   Formula: (points*2) / (points + erreurs + blocks) * 20 = note/20
+
+FORMAT OBLIGATOIRE :
 {
-  "summary": "...",
+  "summary": "string",
   "players": [
     {
-      "name": "...",
-      "number": "...",
-      "technique": 75,
-      "defense": 80,
-      "attitude": 85,
-      "physique": 78,
-      "decision_tactique": 72,
-      "autre": 70,
-      "notes": "..."
+      "name": "string",
+      "number": null,
+      "points": 0,
+      "aces": 0,
+      "blocks": 0,
+      "errors": 0,
+      "scores": {
+        "technique": 0,
+        "defense": 0,
+        "attitude": 0,
+        "physique": 0,
+        "decision_tactique": 0
+      },
+      "final_score": 0,
+      "notes": "string"
     }
   ]
 }
+
+INSTRUCTIONS SUPPLÉMENTAIRES :
+- final_score = moyenne des 5 critères arrondie à 1 décimale
+- notes : synthèse courte de la performance du joueur et ses points forts/faibles
+- Être précis, structuré et cohérent dans l'analyse
+- Les scores doivent refléter UNIQUEMENT ce qui est observé dans la transcription
 """
 
 # ============================================================================
