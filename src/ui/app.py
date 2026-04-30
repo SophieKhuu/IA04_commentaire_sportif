@@ -159,6 +159,9 @@ def render_analysis_tab(weights):
         
         transcribed_text = None
 
+        audio_path = None
+        tmp_path = None
+
         if input_method == "Upload File":
             audio_file = st.file_uploader(
                 "Upload audio file (MP3, WAV, M4A, OGG)",
@@ -178,19 +181,19 @@ def render_analysis_tab(weights):
                             tmp_file.write(audio_file.getbuffer())
                             tmp_path = tmp_file.name
 
-                        transcriber = get_transcriber()
-                        transcribed_text = transcriber.transcribe(tmp_path)
+                        # transcriber = get_transcriber()
+                        # transcribed_text = transcriber.transcribe(tmp_path)
 
-                        # Clean up
-                        os.unlink(tmp_path)
+                        # # Clean up
+                        # os.unlink(tmp_path)
 
-                        st.success("✅ Transcription completed")
-                        st.text_area(
-                            "Transcribed text",
-                            value=transcribed_text,
-                            height=100,
-                            disabled=True,
-                        )
+                        # st.success("✅ Transcription completed")
+                        # st.text_area(
+                        #     "Transcribed text",
+                        #     value=transcribed_text,
+                        #     height=100,
+                        #     disabled=True,
+                        # )
 
                     except Exception as e:
                         st.error(f"❌ Transcription failed: {str(e)}")
@@ -224,31 +227,42 @@ def render_analysis_tab(weights):
                         except Exception as e:
                             st.error(f"❌ Download/Transcription failed: {str(e)}")
                             logger.error(f"Video processing error: {str(e)}", exc_info=True)
-            if st.button("Transcribe Video Audio", use_container_width=True):
-                if 'audio_path' in locals():
-                    # Transcribe
-                            with st.spinner("🎤 Transcribing audio..."):
-                                try:
-                                    transcriber = get_transcriber()
-                                    transcribed_text = transcriber.transcribe(audio_path)
-                                    st.success("✅ Transcription completed")
-                                    st.text_area(
-                                        "Transcribed text",
-                                        value=transcribed_text,
-                                        height=100,
-                                        disabled=True,
-                                        key="transcribed_video_text"
-                                    )
-                                    
-                                    # Store in session state for later use
-                                    st.session_state.transcribed_video_text = transcribed_text
-                                except Exception as e:
-                                    st.error(f"❌ Transcription failed: {str(e)}")
-                                    logger.error(f"Transcription error: {str(e)}", exc_info=True)
+        if st.button("Transcribe Video Audio", use_container_width=True):
+            if audio_path is not None:
+                        path = audio_path
+            elif tmp_path is not None:
+                        path = tmp_path
+            else:
+                        st.error("❌ No audio file available for transcription")
+                        logger.error("No audio file available for transcription")
+    # Transcribe
+            with st.spinner("🎤 Transcribing audio..."):
+                try:
+                    transcriber = get_transcriber()
+                    print("Transcribing audio at path:", path)
+                    transcribed_text = transcriber.transcribe(path)
+                    st.success("✅ Transcription completed")
+                    st.text_area(
+                        "Transcribed text",
+                        value=transcribed_text,
+                        height=100,
+                        disabled=True,
+                        key="transcribed_video_text"
+                    )
+                    
+                    # cleaning if tmp path
+                    if tmp_path:
+                        os.unlink(tmp_path)
 
+                    # Store in session state for later use
+                    st.session_state.transcribed_video_text_data = transcribed_text
+                except Exception as e:
+                    st.error(f"❌ Transcription failed: {str(e)}")
+                    logger.error(f"Transcription error: {str(e)}", exc_info=True)
+    
     # Decide which text to use
-    if "transcribed_video_text" in st.session_state and st.session_state.transcribed_video_text:
-        text_to_analyze = st.session_state.transcribed_video_text
+    if "transcribed_video_text_data" in st.session_state and st.session_state.transcribed_video_text_data:
+        text_to_analyze = st.session_state.transcribed_video_text_data
         source_type = "video"
     else:
         text_to_analyze = transcribed_text if transcribed_text else commentary_text
@@ -275,7 +289,7 @@ def render_analysis_tab(weights):
 
                 # Get LLM client and analyze
                 llm_client = get_llm_client()
-                print(text_to_analyze)
+                # print(text_to_analyze)
                 llm_response = llm_client.extract_json(text_to_analyze)
 
                 processing_time = time.time() - start_time

@@ -10,6 +10,7 @@ from typing import Optional
 import whisper
 
 from src.config import WHISPER_MODEL, WHISPER_DEVICE
+from src.config import DATA_DIR
 
 # WHISPER_MODEL="base"
 # WHISPER_DEVICE="cpu"
@@ -124,6 +125,11 @@ class WhisperTranscriber:
             )
 
             transcribed_text = result.get("text", "").strip()
+
+            # export transcription in the data directory to text file for debugging
+            transcription_output_path = DATA_DIR / f"{path.stem}.txt"
+            with open(transcription_output_path, "w", encoding="utf-8") as f:
+                f.write(transcribed_text)
 
             if not transcribed_text:
                 logger.warning(f"Transcription produced empty result")

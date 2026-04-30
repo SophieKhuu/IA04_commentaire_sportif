@@ -48,6 +48,8 @@ data/*.mp3
 data/*.wav
 data/*.m4a
 data/*.ogg
+data/*.txt
+data/*.json
 models/whisper/*
 !data/.gitkeep
 
