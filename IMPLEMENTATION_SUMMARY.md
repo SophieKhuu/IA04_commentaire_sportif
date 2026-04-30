@@ -170,7 +170,7 @@ Total Lines of Code: ~1,700+ (excluding tests & docs)
 
 1. **Navigate to project:**
    ```bash
-   cd c:\Users\zebri\Documents\GitHub\IA04_commentaire_sportif
+   cd c:\YOUR_PATH\IA04_commentaire_sportif
    ```
 
 2. **Install dependencies:**

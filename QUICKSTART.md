@@ -16,7 +16,7 @@
 
 **Windows:**
 ```bash
-cd c:\Users\zebri\Documents\GitHub\IA04_commentaire_sportif
+cd c:YOUR\PATH\IA04_commentaire_sportif
 install.bat
 ```
 
